@@ -104,21 +104,41 @@ copy_ffmpeg(){
   echo "$target"
 }
 
+resolve_glassui_json(){
+  local p="$1"
+  if [ -d "$p" ]; then
+    if [ "$(basename "$p")" = "glassui" ]; then
+      echo "$(dirname "$p")/glassui.json"
+    elif [ -f "$p/glassui.json" ]; then
+      echo "$p/glassui.json"
+    elif [ -f "$p/config/glassui.json" ]; then
+      echo "$p/config/glassui.json"
+    else
+      echo "$p/glassui.json"
+    fi
+  else
+    echo "$p"
+  fi
+}
+
 set_ffmpeg_path_json(){
-  local config_dir="$1" ffmpeg_path="$2"
-  local json="$config_dir/../glassui.json"
-  # common: config_dir is .../config/glassui ; glassui.json is .../config/glassui.json
-  local parent
-  parent="$(dirname "$config_dir")"
-  json="$parent/glassui.json"
+  local json_input="$1" ffmpeg_path="$2"
+  local json
+  json=$(resolve_glassui_json "$json_input")
+  mkdir -p "$(dirname "$json")"
   if [ -f "$json" ]; then
+    if ! jq empty "$json" >/dev/null 2>&1; then
+      echo "ERROR: JSON tidak valid: $json" >&2
+      return 1
+    fi
+    local tmp
     tmp="$json.tmp"
-    jq --arg p "$ffmpegPathVal" '.ffmpegPath=$p' "$json" > "$tmp" && mv "$tmp" "$json"
+    jq --arg p "$ffmpeg_path" '.ffmpegPath = $p' "$json" > "$tmp" && mv "$tmp" "$json"
     echo "Updated ffmpegPath in $json" >&2
   else
     cat > "$json" <<JSON
 {
-  "ffmpegPath": "$ffmpegPathVal"
+  "ffmpegPath": "$ffmpeg_path"
 }
 JSON
     echo "Created $json with ffmpegPath" >&2
@@ -126,7 +146,7 @@ JSON
 }
 
 main(){
-  ui_msg "Setup GlassUI Android oleh Alpoyy. Script ini bisa minta izin storage, salin ffmpeg ke folder custom (default Downloads), dan set ffmpegPath di glassui.json."
+  ui_msg "Setup GlassUI Android oleh Alpoyy. Script ini minta izin storage, menyalin ffmpeg ke folder custom (default Downloads, bukan data), dan hanya mengubah ffmpegPath di glassui.json."
   need_storage
   ensure_deps
 
@@ -145,11 +165,19 @@ main(){
   fi
 
   if [ "$action" = "Salin ffmpeg + set ffmpegPath" ] || [ "$action" = "Set ffmpegPath saja" ]; then
-    local config_dir json
-    config_dir=$(ui_input "$APP_TITLE" "Masukkan folder config glassui (untuk menemukan glassui.json):" "$DEFAULT_CONFIG_DIR")
-    ffmpegPathVal="$ffmpeg_path"
-    set_ffmpeg_path_json "$config_dir" "$ffmpeg_path"
-    ui_msg "ffmpegPath diset ke:\n$ffmpeg_path\n\nRestart Minecraft setelah ini."
+    local json_input json
+    json_input=$(ui_input "$APP_TITLE" "Masukkan path glassui.json (atau folder config):" "$DEFAULT_CONFIG_DIR/../glassui.json")
+    json=$(resolve_glassui_json "$json_input")
+    if [ ! -f "$json" ]; then
+      if ui_confirm "File glassui.json tidak ditemukan di: $json. Buat file baru yang hanya berisi ffmpegPath?"; then
+        :
+      else
+        ui_msg "Dibatalkan. ffmpegPath tidak diubah."
+        exit 1
+      fi
+    fi
+    set_ffmpeg_path_json "$json_input" "$ffmpeg_path"
+    ui_msg "ffmpegPath diset ke:\n$ffmpeg_path\n\nHanya field ffmpegPath yang diubah. Restart Minecraft setelah ini."
   else
     ui_msg "Selesai. File ffmpeg ada di:\n$ffmpeg_path\n\nJika mau GlassUI pakai file ini, set ffmpegPath di glassui.json ke path tersebut."
   fi
