@@ -2,7 +2,7 @@
 
 Script Termux untuk setup GlassUI di Android (Zalith/Pojav-like launcher):
 - minta izin storage (`termux-setup-storage`)
-- unduh/salin `ffmpeg` arm64 ke folder config GlassUI
+- unduh/salin `ffmpeg` arm64 ke folder custom (default `/storage/emulated/0/Download`, bukan langsung ke folder `data`)
 - set `ffmpegPath` di `glassui.json`
 
 > Catatan: ffmpeg Android arm64 mungkin tidak kompatibel di semua launcher. Binary yang diunduh berasal dari release: https://github.com/RyzzXCODING/ffmpeg-android-arm64-glassui/releases/latest/download/ffmpeg
@@ -17,8 +17,9 @@ curl -fsSL https://raw.githubusercontent.com/RyzzXCODING/glassui-android-setup/m
 
 ## Default path (bisa diganti di GUI/input)
 
-- Config dir: `/storage/emulated/0/Android/data/com.movtery.zalithlauncher.v2/files/.minecraft/versions/1.21.11 Fabric 0.19.5/config/glassui`
-- ffmpeg: `<config-dir>/ffmpeg`
+- Folder salin ffmpeg: `/storage/emulated/0/Download`
+- Config dir (untuk cari `glassui.json`): `/storage/emulated/0/Android/data/com.movtery.zalithlauncher.v2/files/.minecraft/versions/1.21.11 Fabric 0.19.5/config/glassui`
+- ffmpeg: `<folder-custom>/ffmpeg`
 - glassui.json: `<config-dir>/../glassui.json`
 
 ## Setelah setup

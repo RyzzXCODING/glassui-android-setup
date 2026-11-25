@@ -4,6 +4,7 @@ set -euo pipefail
 APP_TITLE="GlassUI Android Setup"
 DEFAULT_GAME_DIR="/storage/emulated/0/Android/data/com.movtery.zalithlauncher.v2/files/.minecraft/versions/1.21.11 Fabric 0.19.5"
 DEFAULT_CONFIG_DIR="$DEFAULT_GAME_DIR/config/glassui"
+DEFAULT_DOWNLOAD_DIR="/storage/emulated/0/Download"
 FFMPEG_RELEASE_URL="https://github.com/RyzzXCODING/ffmpeg-android-arm64-glassui/releases/latest/download/ffmpeg"
 
 have_cmd(){ command -v "$1" >/dev/null 2>&1; }
@@ -125,27 +126,32 @@ JSON
 }
 
 main(){
-  ui_msg "Setup GlassUI Android oleh Alpoyy. Script ini bisa minta izin storage, salin ffmpeg, dan set ffmpegPath di glassui.json."
+  ui_msg "Setup GlassUI Android oleh Alpoyy. Script ini bisa minta izin storage, salin ffmpeg ke folder custom (default Downloads), dan set ffmpegPath di glassui.json."
   need_storage
   ensure_deps
 
   local action
-  action=$(ui_radio "$APP_TITLE" "Pilih aksi:" "Setup ffmpeg + set path" "Salin ffmpeg saja" "Set ffmpegPath saja" "Keluar")
+  action=$(ui_radio "$APP_TITLE" "Pilih aksi:" "Salin ffmpeg ke folder custom/Downloads" "Salin ffmpeg + set ffmpegPath" "Set ffmpegPath saja" "Keluar")
   [ "$action" = "Keluar" ] && exit 0
 
-  local config_dir ffmpeg_path
-  config_dir=$(ui_input "$APP_TITLE" "Masukkan folder config glassui:" "$DEFAULT_CONFIG_DIR")
-  ffmpeg_path="$config_dir/ffmpeg"
-
-  if [ "$action" = "Setup ffmpeg + set path" ] || [ "$action" = "Salin ffmpeg saja" ]; then
-    copy_ffmpeg "$config_dir" >/dev/null
+  local ffmpeg_dir ffmpeg_path
+  if [ "$action" = "Salin ffmpeg ke folder custom/Downloads" ] || [ "$action" = "Salin ffmpeg + set ffmpegPath" ]; then
+    ffmpeg_dir=$(ui_input "$APP_TITLE" "Masukkan folder tujuan salin ffmpeg (default Downloads, bukan folder data):" "$DEFAULT_DOWNLOAD_DIR")
+    ffmpeg_path="$ffmpeg_dir/ffmpeg"
+    copy_ffmpeg "$ffmpeg_dir" >/dev/null
     ui_msg "ffmpeg disalin ke: $ffmpeg_path"
+  else
+    ffmpeg_path=$(ui_input "$APP_TITLE" "Masukkan path lengkap file ffmpeg:" "$DEFAULT_DOWNLOAD_DIR/ffmpeg")
   fi
 
-  if [ "$action" = "Setup ffmpeg + set path" ] || [ "$action" = "Set ffmpegPath saja" ]; then
+  if [ "$action" = "Salin ffmpeg + set ffmpegPath" ] || [ "$action" = "Set ffmpegPath saja" ]; then
+    local config_dir json
+    config_dir=$(ui_input "$APP_TITLE" "Masukkan folder config glassui (untuk menemukan glassui.json):" "$DEFAULT_CONFIG_DIR")
     ffmpegPathVal="$ffmpeg_path"
     set_ffmpeg_path_json "$config_dir" "$ffmpeg_path"
     ui_msg "ffmpegPath diset ke:\n$ffmpeg_path\n\nRestart Minecraft setelah ini."
+  else
+    ui_msg "Selesai. File ffmpeg ada di:\n$ffmpeg_path\n\nJika mau GlassUI pakai file ini, set ffmpegPath di glassui.json ke path tersebut."
   fi
 
   ui_msg "Selesai. Jika musik tetap tidak jalan, pastikan ffmpeg kompatibel dengan launcher Android kamu (arm64) dan GlassUI v1.3.23+ terpasang."
